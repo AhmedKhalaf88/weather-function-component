@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Input from "./Input";
 import Weather from "./Weather";
 
@@ -18,37 +18,40 @@ function App() {
   const [displayLocation, setDisplayLocation] = useState("");
   const [weather, setWeather] = useState({});
 
-  async function fetchWeather() {
-    if (location.length < 2) return setWeather({});
+  const fetchWeather = useCallback(
+    async function () {
+      if (location.length < 2) return setWeather({});
 
-    setIsLoading(true);
-    try {
-      // 1) Getting location (geocoding)
-      const geoRes = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${location}`
-      );
-      const geoData = await geoRes.json();
-      // console.log(geoData);
+      setIsLoading(true);
+      try {
+        // 1) Getting location (geocoding)
+        const geoRes = await fetch(
+          `https://geocoding-api.open-meteo.com/v1/search?name=${location}`
+        );
+        const geoData = await geoRes.json();
+        // console.log(geoData);
 
-      if (!geoData.results) throw new Error("Location not found");
+        if (!geoData.results) throw new Error("Location not found");
 
-      const { latitude, longitude, timezone, name, country_code } =
-        geoData.results.at(0);
-      setDisplayLocation(`${name} ${convertToFlag(country_code)}`);
+        const { latitude, longitude, timezone, name, country_code } =
+          geoData.results.at(0);
+        setDisplayLocation(`${name} ${convertToFlag(country_code)}`);
 
-      // 2) Getting actual weather
-      const weatherRes = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&timezone=${timezone}&daily=weathercode,temperature_2m_max,temperature_2m_min`
-      );
-      const weatherData = await weatherRes.json();
-      console.log(weatherData.daily);
-      setWeather(weatherData.daily);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  }
+        // 2) Getting actual weather
+        const weatherRes = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&timezone=${timezone}&daily=weathercode,temperature_2m_max,temperature_2m_min`
+        );
+        const weatherData = await weatherRes.json();
+        console.log(weatherData.daily);
+        setWeather(weatherData.daily);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [location]
+  );
 
   useEffect(
     function () {
@@ -57,7 +60,7 @@ function App() {
       }
       localStorage.setItem("location", location);
     },
-    [location]
+    [location, fetchWeather]
   );
 
   return (
